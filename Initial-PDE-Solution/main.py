@@ -1,106 +1,106 @@
 import numpy as np
 import pde
+from dataclasses import dataclass
 
+@dataclass
 class DiffusionRates:
-    def __init__(self, d, e, md, mde, me):
-        self.d = d
-        self.e = e
-        self.md = md
-        self.mde = mde
-        self.me = me
+    d: float
+    e: float
 
+@dataclass
+class RateDAttachParams:
+    d0: float
+    d1_d: float
+    d1_de: float
+    def get_rate_d_attach(self, m_d, m_de):
+        return self.d0 + self.d1_d*m_d + self.d1_de*m_de
+
+@dataclass
+class RateEAttachParams:
+    e0: float
+    def get_rate_e(self, m_d):
+        return self.e0 * m_d
+
+@dataclass
 class KineticRates:
-    def __init__(self, d0, d1, e_a, e_d, de0, de0_prime, k_de):
-        self.d0 = d0
-        self.d1 = d1
-        self.e_a = e_a
-        self.e_d = e_d
-        self.de0 = de0
-        self.de0_prime = de0_prime
-        self.k_de = k_de
+    nuclear_exchange: float
+    de_detach: float
+    d_attach: RateDAttachParams
+    e_attach: RateEAttachParams
 
-class MinDMinEBonnyPDE(pde.PDEBase):
-    def __init__(self, diffusion_rate, rate, c_max, h):
+class MinDMinEHuangPDE(pde.PDEBase):
+    def __init__(self, diffusion_rates: DiffusionRates, kinetic_rates: KineticRates, h, laplace_bc='neumann'):
         super().__init__()
-        self.diffusion_rate = diffusion_rate
-        self.rate = rate
-        self.c_max = c_max
+        self.diffusion_rates = diffusion_rates
+        self.kinetic_rates = kinetic_rates
         self.h = h
+        self.laplace_bc = laplace_bc
 
     def evolution_rate(self, state, t=0) -> pde.FieldCollection:
-        c_d, c_e, m_d, m_de, m_e = state
+        c_d_adp, c_d_atp, c_e, m_d, m_de = state
 
-        J_d_on = (self.rate.d0 + self.rate.d1 * m_d) * (1 - (m_d + m_de) / self.c_max) * c_d
-        J_e_on = self.rate.e_a * m_d * c_e
-        
-        J_d_off = (self.rate.de0 + self.rate.de0_prime) * m_de 
-        
-        J_e_off_from_mde = self.rate.de0 * m_de 
-        J_e_off_from_me = self.rate.e_d * m_e
+        rate_d_attach = self.kinetic_rates.d_attach.get_rate_d_attach(m_d, m_de)
+        rate_e_attach = self.kinetic_rates.e_attach.get_rate_e(m_d)
 
-        J_membrane_complex = self.rate.k_de * m_d * m_e
+        nuclear_exchange_density = self.kinetic_rates.nuclear_exchange * c_d_adp
+        flux_de_detach = self.kinetic_rates.de_detach * m_de
+        flux_d_attach = rate_d_attach * c_d_atp
+        flux_e_attach = rate_e_attach * c_e
 
-        c_d_tdiff = (
-            self.diffusion_rate.d * c_d.laplace(bc='neumann') 
-            + J_d_off / self.h 
-            - J_d_on / self.h
+        dt_c_d_adp = (
+            self.diffusion_rates.d * c_d_adp.laplace(bc=self.laplace_bc) 
+            - nuclear_exchange_density
+            + flux_de_detach / self.h
         )
-        c_e_tdiff = (
-            self.diffusion_rate.e * c_e.laplace(bc='neumann')
-            + J_e_off_from_mde / self.h  # FIXED: MinE now correctly returns to cytosol
-            + J_e_off_from_me / self.h
-            - J_e_on / self.h
+        dt_c_d_atp = (
+            self.diffusion_rates.d * c_d_atp.laplace(bc=self.laplace_bc) 
+            + nuclear_exchange_density
+            - flux_d_attach / self.h
         )
-
-        m_d_tdiff = (
-            self.diffusion_rate.md * m_d.laplace(bc='neumann')
-            + J_d_on 
-            - J_e_on 
-            - J_membrane_complex
+        dt_c_e = (
+            self.diffusion_rates.e * c_e.laplace(bc=self.laplace_bc)
+            - flux_e_attach / self.h
+            + flux_de_detach / self.h
         )
-        m_de_tdiff = (
-            self.diffusion_rate.mde * m_de.laplace(bc='neumann')
-            + J_e_on 
-            + J_membrane_complex 
-            - J_d_off  
+        dt_m_d = (
+            flux_d_attach
+            - flux_e_attach
         )
-        m_e_tdiff = (
-            self.diffusion_rate.me * m_e.laplace(bc='neumann')
-            + self.rate.de0_prime * m_de 
-            - J_membrane_complex 
-            - J_e_off_from_me
+        dt_m_de = (
+            flux_e_attach
+            - flux_de_detach
         )
 
-        return pde.FieldCollection([c_d_tdiff, c_e_tdiff, m_d_tdiff, m_de_tdiff, m_e_tdiff])
+        return pde.FieldCollection([dt_c_d_adp, dt_c_d_atp, dt_c_e, dt_m_d, dt_m_de])
 
 def main():
     grid = pde.CartesianGrid([[0, 4]], [100])
     
-    c_d = pde.ScalarField(grid, 2200)
-    c_e = pde.ScalarField(grid, 1500)
-    m_d = pde.ScalarField.random_uniform(grid, 0.0, 1000)
-    m_de = pde.ScalarField.random_uniform(grid, 0.0, 1000)
-    m_e = pde.ScalarField.random_uniform(grid, 0.0, 1000)
+    c_d_adp = pde.ScalarField(grid, 6600)
+    c_d_atp = pde.ScalarField(grid, 0)
+    c_e = pde.ScalarField(grid, 600)
+    m_d = pde.ScalarField.random_uniform(grid, 0.0, 1)
+    m_de = pde.ScalarField.random_uniform(grid, 0.0, 0)
     
-    initial_state = pde.FieldCollection([c_d, c_e, m_d, m_de, m_e])
+    initial_state = pde.FieldCollection([c_d_adp, c_d_atp, c_e, m_d, m_de])
     
-    diff_rates = DiffusionRates(d=14, e=14, md=0.06, mde=0.06, me=0.6)
-    kin_rates = KineticRates(d0=0.1, d1=0.0088, e_a=0.00007, e_d=0.5, de0=0.08, de0_prime=1.5, k_de=0.0049)
+    diff_rates = DiffusionRates(2.5, 2.5)
+    kin_rates = KineticRates(1, 0.7, RateDAttachParams(0.025, 0.0015, 0.0015), RateEAttachParams(0.093))
     
-    eq = MinDMinEBonnyPDE(diffusion_rate=diff_rates, rate=kin_rates, c_max=5400, h=0.25)
+    eq = MinDMinEHuangPDE(diffusion_rates=diff_rates, kinetic_rates=kin_rates, h=0.25)
     
     print("Starting...")
     storage = pde.MemoryStorage()
     
     result = eq.solve(
         initial_state, 
-        t_range=10,
+        t_range=100,
         solver="scipy",
         method="BDF",
         tracker=["progress", storage.tracker(0.1)]
     )
     
-    pde.plot_kymograph(storage, field_index=2, title="Membrane-bound minD concentration")
+    pde.plot_kymograph(storage, field_index=3, title="Membrane-bound minD concentration")
 
 if __name__ == '__main__':
     main()
