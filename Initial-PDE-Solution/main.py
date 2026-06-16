@@ -76,9 +76,9 @@ class MinDMinEHuangPDE(pde.PDEBase):
 def main():
     grid = pde.CartesianGrid([[0, 4]], [100])
     
-    c_d_adp = pde.ScalarField(grid, 6600)
-    c_d_atp = pde.ScalarField(grid, 0)
-    c_e = pde.ScalarField(grid, 600)
+    c_d_adp = pde.ScalarField(grid, 0)
+    c_d_atp = pde.ScalarField(grid, 660)
+    c_e = pde.ScalarField(grid, 250)
     m_d = pde.ScalarField.random_uniform(grid, 0.0, 1)
     m_de = pde.ScalarField.random_uniform(grid, 0.0, 0)
     
@@ -94,7 +94,7 @@ def main():
     
     result = eq.solve(
         initial_state, 
-        t_range=100,
+        t_range=20,
         solver="scipy",
         method="BDF",
         tracker=["progress", storage.tracker(0.1)]
