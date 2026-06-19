@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Adapted from example the py-pde official documentation:
+# Adapted from example from the py-pde official documentation:
 # https://py-pde.readthedocs.io/en/latest/examples_gallery/advanced_pdes/pde_brusselator_class.html
 # -----------------------------------------------------------------------------
 
@@ -72,12 +72,12 @@ class BrusselatorPDE(PDEBase):
 
         return pde_rhs
 
+if __name__ == "__main__":
+    # initialize state
+    grid = UnitGrid([64, 64])
+    eq = BrusselatorPDE(diffusivity=[1, 0.1])
+    state = eq.get_initial_state(grid)
 
-# initialize state
-grid = UnitGrid([64, 64])
-eq = BrusselatorPDE(diffusivity=[1, 0.1])
-state = eq.get_initial_state(grid)
-
-# simulate the pde
-tracker = PlotTracker(interrupts=1, plot_args={"kind": "merged", "vmin": 0, "vmax": 5})
-sol = eq.solve(state, t_range=20, dt=1e-3, tracker=tracker)
+    # simulate the pde
+    tracker = PlotTracker(interrupts=1, plot_args={"kind": "merged", "vmin": 0, "vmax": 5})
+    sol = eq.solve(state, t_range=20, dt=1e-3, tracker=tracker)
