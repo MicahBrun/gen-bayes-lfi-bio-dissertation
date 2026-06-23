@@ -72,35 +72,77 @@ class MinDMinEHuangPDE(pde.PDEBase):
         )
 
         return pde.FieldCollection([dt_c_d_adp, dt_c_d_atp, dt_c_e, dt_m_d, dt_m_de])
+    
+    def make_evolution_rate(self, state, backend):
+        laplace = state.grid.make_operator(
+            "laplace", bc=self.laplace_bc, backend=backend, dtype=state.dtype
+        )
+
+        def pde_rhs(state_data, t):
+            c_d_adp = state_data[0]
+            c_d_atp = state_data[1]
+            c_e = state_data[2]
+            m_d = state_data[3]
+            m_de = state_data[4]
+
+            rate_d_attach = self.kinetic_rates.d_attach.get_rate_d_attach(m_d, m_de)
+            rate_e_attach = self.kinetic_rates.e_attach.get_rate_e(m_d)
+
+            nuclear_exchange_density = self.kinetic_rates.nuclear_exchange * c_d_adp
+            flux_de_detach = self.kinetic_rates.de_detach * m_de
+            flux_d_attach = rate_d_attach * c_d_atp
+            flux_e_attach = rate_e_attach * c_e
+
+            dt_c_d_adp = (
+                self.diffusion_rates.d * laplace(c_d_adp) 
+                - nuclear_exchange_density
+                + flux_de_detach / self.h
+            )
+            dt_c_d_atp = (
+                self.diffusion_rates.d * laplace(c_d_atp) 
+                + nuclear_exchange_density
+                - flux_d_attach / self.h
+            )
+            dt_c_e = (
+                self.diffusion_rates.e * laplace(c_e)
+                - flux_e_attach / self.h
+                + flux_de_detach / self.h
+            )
+            dt_m_d = (
+                flux_d_attach
+                - flux_e_attach
+            )
+            dt_m_de = (
+                flux_e_attach
+                - flux_de_detach
+            )
+            return np.stack((dt_c_d_adp, dt_c_d_atp, dt_c_e, dt_m_d, dt_m_de))
+
+        return pde_rhs
 
 def main():
-    grid = pde.CartesianGrid([[0, 4]], [100])
+    grid = pde.CartesianGrid([(0,4), (0,2)], [64, 32], periodic=[False, False])
+    bc="auto_periodic_neumann"
     
-    c_d_adp = pde.ScalarField(grid, 0)
-    c_d_atp = pde.ScalarField(grid, 660)
-    c_e = pde.ScalarField(grid, 250)
-    m_d = pde.ScalarField.random_uniform(grid, 0.0, 1)
-    m_de = pde.ScalarField.random_uniform(grid, 0.0, 0)
+    c_d_adp = pde.ScalarField(grid, 318)
+    c_d_atp = pde.ScalarField(grid, 0)
+    c_e = pde.ScalarField.random_uniform(grid, 27, 27.1)#120)
+    m_d = pde.ScalarField(grid, 0)
+    m_de = pde.ScalarField(grid, 0)
     
-    initial_state = pde.FieldCollection([c_d_adp, c_d_atp, c_e, m_d, m_de])
+    state = pde.FieldCollection([c_d_adp, c_d_atp, c_e, m_d, m_de])
     
     diff_rates = DiffusionRates(2.5, 2.5)
     kin_rates = KineticRates(1, 0.7, RateDAttachParams(0.025, 0.0015, 0.0015), RateEAttachParams(0.093))
+    #kin_rates = KineticRates(1, 0.7, RateDAttachParams(0.025, 0.015, 0.15), RateEAttachParams(0.93))
     
-    eq = MinDMinEHuangPDE(diffusion_rates=diff_rates, kinetic_rates=kin_rates, h=0.25)
+    eq = MinDMinEHuangPDE(diffusion_rates=diff_rates, kinetic_rates=kin_rates, h=1, laplace_bc=bc)
     
     print("Starting...")
-    storage = pde.MemoryStorage()
-    
-    result = eq.solve(
-        initial_state, 
-        t_range=20,
-        solver="scipy",
-        method="BDF",
-        tracker=["progress", storage.tracker(0.1)]
-    )
-    
-    pde.plot_kymograph(storage, field_index=3, title="Membrane-bound minD concentration")
+    # simulate the pde
+    tracker = pde.PlotTracker(interrupts=1)
+    sol = eq.solve(state, t_range=200, dt=2e-4, tracker=tracker)
+    input('Finish?')
 
 if __name__ == '__main__':
     main()

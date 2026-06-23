@@ -72,7 +72,7 @@ class BrusselatorPDE(PDEBase):
 
         return pde_rhs
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # initialize state
     grid = UnitGrid([64, 64])
     eq = BrusselatorPDE(diffusivity=[1, 0.1])
@@ -81,3 +81,4 @@ if __name__ == "__main__":
     # simulate the pde
     tracker = PlotTracker(interrupts=1, plot_args={"kind": "merged", "vmin": 0, "vmax": 5})
     sol = eq.solve(state, t_range=20, dt=1e-3, tracker=tracker)
+    input('Finish?')
