@@ -5,14 +5,12 @@
 
 import numpy as np
 
-from pde import FieldCollection, PDEBase, plot_kymographs, ScalarField, CartesianGrid, FileStorage, PlotTracker
+from pde import FieldCollection, PDEBase, plot_kymographs, ScalarField, CartesianGrid, FileStorage, PlotTracker, MovieStorage, movie
 from tempfile import NamedTemporaryFile
 import numba
 
 
 class HowardPDE(PDEBase):
-    """Brusselator with diffusive mobility."""
-
     def __init__(self, diffusivity, reaction_params, bc="auto_periodic_neumann"):
         super().__init__()
         self.diffusivity = diffusivity
@@ -31,7 +29,6 @@ class HowardPDE(PDEBase):
 
     def evolution_rate(self, state, t=0):
         """Pure python implementation of the PDE."""
-        print("yo")
         c_d, c_e, m_d, m_e = state
         r_da, r_dd, r_ea, r_ed, u_d1, u_e1 = self.reaction_params
         dif_d, dif_e = self.diffusivity
@@ -83,15 +80,21 @@ class HowardPDE(PDEBase):
 
 if __name__ == '__main__':
     # initialize state
-    grid = CartesianGrid([(0, 2), (0, 1)], [100, 100], [False, True])
+    grid = CartesianGrid([(0, 2), (0, 1)], [100, 50], [False, False])
     eq = HowardPDE(diffusivity=[0.28, 0.6], reaction_params=[20, 6.3e-3, 4e-2, 0.8, 2.8e-2, 2.7e-2])
     state = eq.get_initial_state(grid)
 
     # run a simulation
-    tracker = PlotTracker(interrupts=0.5)
+    tracker = PlotTracker(interrupts=10)
+    # initialize empty storages
+    file_write = FileStorage("./temp/howard-2D.hdf")
+    #movie_write = MovieStorage("howard-2D.avi", vmin=0, vmax=[120, 20, 1500, 100], bits_per_channel=16)
 
     eq.solve(state, 
-        t_range=1000, 
+        t_range=500, 
         solver="scipy",
         backend="numba",
-        tracker=["progress", tracker])
+        tracker=["progress", tracker, file_write.tracker(0.5)])
+
+    file_read = FileStorage("./temp/howard-2D.hdf")
+    movie(file_read, filename="../Simulation-results/howard-2D.mov", show_time=True, movie_args={"framerate": 5})

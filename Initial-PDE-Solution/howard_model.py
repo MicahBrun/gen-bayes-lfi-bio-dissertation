@@ -11,8 +11,6 @@ import numba
 
 
 class HowardPDE(PDEBase):
-    """Brusselator with diffusive mobility."""
-
     def __init__(self, diffusivity, reaction_params, bc="auto_periodic_neumann"):
         super().__init__()
         self.diffusivity = diffusivity
@@ -85,6 +83,7 @@ if __name__ == '__main__':
     grid = CartesianGrid([(0, 2)], [250], False)
     eq = HowardPDE(diffusivity=[0.28, 0.6], reaction_params=[20, 6.3e-3, 4e-2, 0.8, 2.8e-2, 2.7e-2])
     state = eq.get_initial_state(grid)
+    
 
     with NamedTemporaryFile(suffix=".hdf5") as path:
         # run a simulation and write the results
