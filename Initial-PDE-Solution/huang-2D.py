@@ -94,21 +94,21 @@ class HuangPDE(PDEBase):
 
 if __name__ == '__main__':
     # initialize state
-    grid = CartesianGrid([(0, 1), (0, 4)], [16, 64], [False, False])
+    grid = CartesianGrid([(0, 1), (0, 16)], [16, 256], [False, False])
     eq = HuangPDE(diffusivity=[2.5, 2.5], reaction_params=[1, 0.025, 0.0015, 0.0015, 0.093, 0.7], h=1)
     state = eq.get_initial_state(grid)
 
     # run a simulation
     tracker = PlotTracker(interrupts=10)
     # initialize empty storages
-    file_write = FileStorage("./temp/huang-2D-2080.hdf")
+    file_write = FileStorage("./temp/huang-2D-16x1-5000-20260625-2357.hdf")
     #movie_write = MovieStorage("howard-2D.avi", vmin=0, vmax=[120, 20, 1500, 100], bits_per_channel=16)
 
     eq.solve(state, 
-        t_range=4000, 
+        t_range=2000, 
         solver="scipy",
         backend="numba",
         tracker=["progress", tracker, file_write.tracker(1)])
 
-    file_read = FileStorage("./temp/huang-2D-2080.hdf")
-    movie(file_read, filename="../Simulation-results/huangs-2D-2080.mov", show_time=True, movie_args={"framerate": 2})
+    file_read = FileStorage("./temp/huang-2D-16x1-5000-20260625-2357.hdf")
+    movie(file_read, filename="../Simulation-results/huang-2D-16x1-5000-20260625-2357.mov", show_time=True, movie_args={"framerate": 5})
