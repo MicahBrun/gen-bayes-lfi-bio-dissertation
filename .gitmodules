@@ -1,0 +1,3 @@
+[submodule "py-pde"]
+	path = py-pde
+	url = https://github.com/MicahBrun/py-pde
