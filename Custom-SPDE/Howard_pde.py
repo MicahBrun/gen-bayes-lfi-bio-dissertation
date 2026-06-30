@@ -8,10 +8,10 @@ def make_dW(grid: Grid):
         return np.random.standard_normal(grid.get_n()).astype(np.float32)*(np.sqrt(dt)*np.sqrt(dV))
     return dW
 
-def get_dreaction(rate, dW, dt, noise_factor):
-    return rate*dt + noise_factor*np.sqrt(rate)*dW(dt)
+def get_dreaction(rate, dW, dt, noise_strength):
+    return rate*dt + noise_strength*np.sqrt(rate)*dW(dt)
 
-def make_reactions_fn(reaction_params: tuple[float, float, float, float, float, float, ], noise_factor: float, grid: Grid):
+def make_reactions_fn(reaction_params: tuple[float, float, float, float, float, float, ], noise_strength: float, grid: Grid):
     r_da, r_dd, r_ea, r_ed, u_d1, u_e1 = reaction_params
 
     dW = make_dW(grid)
@@ -29,10 +29,10 @@ def make_reactions_fn(reaction_params: tuple[float, float, float, float, float, 
         rate_e_on = r_ea * c_d * c_e
         rate_e_off = r_ed * m_e / (1 + u_e1 * c_d)
 
-        d_d_on = get_dreaction(rate_d_on, dW, dt, noise_factor)
-        d_d_off = get_dreaction(rate_d_off, dW, dt, noise_factor)
-        d_e_on = get_dreaction(rate_e_on, dW, dt, noise_factor)
-        d_e_off = get_dreaction(rate_e_off, dW, dt, noise_factor)
+        d_d_on = get_dreaction(rate_d_on, dW, dt, noise_strength)
+        d_d_off = get_dreaction(rate_d_off, dW, dt, noise_strength)
+        d_e_on = get_dreaction(rate_e_on, dW, dt, noise_strength)
+        d_e_off = get_dreaction(rate_e_off, dW, dt, noise_strength)
 
         out[0, :] = d_d_off - d_d_on
         out[1, :] = d_e_off - d_e_on
