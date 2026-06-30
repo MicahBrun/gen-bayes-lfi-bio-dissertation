@@ -100,6 +100,7 @@ def run_simulation_explicit(dt: float,
     stop = True
     for k in range(int(steps)):
         reactions = reaction_fn(cur, dt)
+        cur = cur + reactions + diffusion_matrix @ cur * dt
         cur = cur.clip(0.0)
 
         if k % copy_every == 0:
