@@ -8,10 +8,10 @@ def make_dW(grid: Grid):
         return np.random.standard_normal(grid.get_n()).astype(np.float32)*(np.sqrt(dt)*np.sqrt(dV))
     return dW
 
-def get_dreaction(rate, dW, dt, sigma):
-    return rate*dt + sigma*np.sqrt(rate)*dW(dt)
+def get_dreaction(rate, dW, dt, noise_factor):
+    return rate*dt + noise_factor*np.sqrt(rate)*dW(dt)
 
-def make_reactions_fn(reaction_params: tuple[float, float, float, float, float, float, ], sigma: float, grid: Grid):
+def make_reactions_fn(reaction_params: tuple[float, float, float, float, float, float, ], noise_factor: float, grid: Grid):
     r_da, r_dd, r_ea, r_ed, u_d1, u_e1 = reaction_params
 
     dW = make_dW(grid)
@@ -29,10 +29,10 @@ def make_reactions_fn(reaction_params: tuple[float, float, float, float, float, 
         rate_e_on = r_ea * c_d * c_e
         rate_e_off = r_ed * m_e / (1 + u_e1 * c_d)
 
-        d_d_on = get_dreaction(rate_d_on, dW, dt, sigma)
-        d_d_off = get_dreaction(rate_d_off, dW, dt, sigma)
-        d_e_on = get_dreaction(rate_e_on, dW, dt, sigma)
-        d_e_off = get_dreaction(rate_e_off, dW, dt, sigma)
+        d_d_on = get_dreaction(rate_d_on, dW, dt, noise_factor)
+        d_d_off = get_dreaction(rate_d_off, dW, dt, noise_factor)
+        d_e_on = get_dreaction(rate_e_on, dW, dt, noise_factor)
+        d_e_off = get_dreaction(rate_e_off, dW, dt, noise_factor)
 
         out[0, :] = d_d_off - d_d_on
         out[1, :] = d_e_off - d_e_on
@@ -46,13 +46,13 @@ def make_reactions_fn(reaction_params: tuple[float, float, float, float, float, 
 if __name__ == '__main__':
     grid = Grid([(0,2), (0,1)], [64+1, 32+1], 4)
     diffusion = create_discrete_diffusion_matrix(grid, [0.28, 0.6, 0, 0])
-    reactions_fn = make_reactions_fn((20, 6.3e-3, 4e-2, 0.8, 2.8e-2, 2.7e-2), 10, grid)
+    reactions_fn = make_reactions_fn((20, 6.3e-3, 4e-2, 0.8, 2.8e-2, 2.7e-2), 20, grid)
 
     initial_state = np.zeros((grid.channels, grid.get_n()), dtype=np.float32)
     noise = np.random.standard_normal(grid.get_n()).astype(np.float32)
-    initial_state[0, :] = 1400.0 + 100.0 * noise
+    initial_state[0, :] = 1400.0 + 10.0 * noise
     initial_state[1, :] = 85.0
 
     initial_state = initial_state.reshape(-1)
-    dt = 1e-3
+    dt = 1e-2
     results = run_simulation_semi_implicit(dt, (0, 10000), initial_state, diffusion.tocsr(), reactions_fn, int(1/dt), grid)
