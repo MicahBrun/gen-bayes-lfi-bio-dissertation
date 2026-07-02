@@ -85,4 +85,11 @@ if __name__ == '__main__':
         fig.canvas.flush_events()
 
     dt = 1e-2
-    results = run_simulation_semi_implicit(dt, (0, 10000), initial_state, diffusion.tocsr(), reactions_fn, grid, call_every=(int(1/dt), call))
+    results = run_simulation_semi_implicit(
+        dt, 
+        (0, 10000), 
+        initial_state, 
+        diffusion.tocsr(), 
+        reactions_fn, 
+        grid, 
+        call_every=(int(1/dt), call))
