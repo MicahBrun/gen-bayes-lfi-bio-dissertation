@@ -1,14 +1,7 @@
-import jax
-import jax.scipy.sparse.linalg
 import scipy
 import scipy.sparse
 import scipy.sparse.linalg as spla
-from dataclasses import dataclass
-import itertools as it
 import numpy as np
-import numpy.typing
-import matplotlib.pyplot as plt
-from grid import Grid
 
 from typing import Callable, Any
 from collections.abc import Generator, Sequence
