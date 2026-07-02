@@ -19,6 +19,7 @@ def run_simulation_semi_implicit(dt: float,
                    diffusion_matrix: scipy.sparse.coo_matrix, 
                    reaction_fn: Callable[[np.typing.NDArray[np.float32], float], np.typing.NDArray[np.float32]],
                    call_every: tuple[int, Callable[[float, np.typing.NDArray[np.float32]], None]]):
+    """Run simulation using Euler-Maruyama, with the diffusion solved using an implicit step"""
 
     call_interval, call = call_every
 
@@ -45,6 +46,7 @@ def run_simulation_explicit(dt: float,
                    diffusion_matrix: scipy.sparse.csr_matrix, 
                    reaction_fn: Callable[[np.typing.NDArray[np.float32], float], np.typing.NDArray[np.float32]],
                    call_every: tuple[int, Callable[[float, np.typing.NDArray[np.float32]], None]]):
+    """Run simulation using explicit Euler-Maruyama"""
     call_interval, call = call_every
 
     steps = (t_range[1]-t_range[0])/dt
