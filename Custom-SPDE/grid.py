@@ -1,19 +1,10 @@
-import jax
-import jax.scipy.sparse.linalg
 import scipy
 import scipy.sparse
 import scipy.sparse.linalg as spla
 from dataclasses import dataclass
-import itertools as it
 import numpy as np
-import numpy.typing
-import matplotlib.pyplot as plt
 
-from typing import Callable, Any
-from collections.abc import Generator, Sequence
-
-#I will use semi-implicit Euler in Jax, I need to have the finite difference laplacian, which we then do a step via solving.
-#At each time step we solve implicitly with euler but add the noise with 
+from collections.abc import Sequence
 
 @dataclass()
 class Grid:
