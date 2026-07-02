@@ -51,10 +51,10 @@ if __name__ == '__main__':
     reactions_fn = make_reactions_fn((20, 6.3e-3, 4e-2, 0.8, 2.8e-2, 2.7e-2), 40, grid)
 
     initial_state = np.zeros((grid.channels, grid.get_n()), dtype=np.float32)
-    initial_state = initial_state.reshape(-1)
     noise = np.random.standard_normal(grid.get_n()).astype(np.float32)
     initial_state[0, :] = 1400.0 + 10.0 * noise
     initial_state[1, :] = 85.0
+    initial_state = initial_state.reshape(-1)
 
     #For plotting
     v_grid = initial_state.reshape(grid.channels, grid.get_n())

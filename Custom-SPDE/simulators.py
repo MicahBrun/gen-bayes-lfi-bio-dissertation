@@ -29,7 +29,7 @@ def run_simulation_semi_implicit(dt: float,
         cur = cur.clip(0.0)
 
         if k % call_interval == 0:
-            call(k*dt, cur)
+            call(t_range[0]+k*dt, cur)
 
 
 
@@ -50,4 +50,4 @@ def run_simulation_explicit(dt: float,
         cur = cur.clip(0.0)
 
         if k % call_interval == 0:
-            call(k*dt, cur)
+            call(t_range[0]+k*dt, cur)

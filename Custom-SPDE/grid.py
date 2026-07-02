@@ -21,6 +21,9 @@ class Grid:
         
 
 def create_discrete_diffusion_matrix(grid: Grid, diffusion_coeffs):
+    if len(set(grid.get_cell_dimensions())) > 1:
+        raise Exception(f"All cell dimensions must be equal")
+    
     laplacian = spla.LaplacianNd(grid.shape, boundary_conditions='neumann').tosparse()
     zeros = scipy.sparse.csr_matrix((grid.get_n(), grid.get_n()), dtype=np.float32)
     mats = [
