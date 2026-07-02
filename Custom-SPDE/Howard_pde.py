@@ -51,21 +51,21 @@ if __name__ == '__main__':
     reactions_fn = make_reactions_fn((20, 6.3e-3, 4e-2, 0.8, 2.8e-2, 2.7e-2), 40, grid)
 
     initial_state = np.zeros((grid.channels, grid.get_n()), dtype=np.float32)
+    initial_state = initial_state.reshape(-1)
     noise = np.random.standard_normal(grid.get_n()).astype(np.float32)
     initial_state[0, :] = 1400.0 + 10.0 * noise
     initial_state[1, :] = 85.0
 
+    #For plotting
     v_grid = initial_state.reshape(grid.channels, grid.get_n())
     m_d = v_grid[2, :]
     m_d_grid = m_d.reshape(grid.shape)
     plt.ion()
     fig, ax = plt.subplots(figsize=(6, 5))
-
     img = ax.imshow(m_d_grid, origin='lower', cmap='viridis')
     plt.colorbar(img, ax=ax, label="Concentration")
     ax.set_title("Channel $m_d$")
     plt.show()
-
     def call(t: float, state: np.typing.NDArray[np.float32]):
         print(t)
         v_grid = state.reshape(grid.channels, grid.get_n())
@@ -84,6 +84,5 @@ if __name__ == '__main__':
         fig.canvas.draw_idle()
         fig.canvas.flush_events()
 
-    initial_state = initial_state.reshape(-1)
     dt = 1e-2
     results = run_simulation_semi_implicit(dt, (0, 10000), initial_state, diffusion.tocsr(), reactions_fn, grid, call_every=(int(1/dt), call))
