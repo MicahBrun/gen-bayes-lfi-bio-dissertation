@@ -91,5 +91,4 @@ if __name__ == '__main__':
         initial_state, 
         diffusion.tocsr(), 
         reactions_fn, 
-        grid, 
         call_every=(int(1/dt), call))
